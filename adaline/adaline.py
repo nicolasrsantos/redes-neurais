@@ -28,7 +28,7 @@ def update_weight(weight, learning_rate, desired_output, adaline_output, x):
 
 def train(X_train, y_train, learning_rate):
     weights = np.random.rand(len(X_train[0]))
-    max_iter = 10000
+    max_iter = 1000
 
     for i in range(max_iter):
         for j in range(len(X_train)):
@@ -57,7 +57,7 @@ def main():
     X_train, y_train = read_files("train/")
     X_test, y_test = read_files("test/")
     
-    learning_rate = 0.000001
+    learning_rate = 0.5
     weights = train(X_train, y_train, learning_rate)
     test(X_test, y_test, weights)
 
