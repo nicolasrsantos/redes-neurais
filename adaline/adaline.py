@@ -40,8 +40,7 @@ def train(X_train, y_train, learning_rate):
             if (output != y_train[j]):
                 for k in range(len(weights)):
                     weights[k] = update_weight(weights[k], learning_rate, y_train[j], output, X_train[j][k])
-                break
-
+    
     return weights
 
 def test(X_test, y_test, weights):
