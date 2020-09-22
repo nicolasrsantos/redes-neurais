@@ -22,7 +22,7 @@ def init_network(n_inputs):
 
 # calculate neuron activation for an input
 def activate(weights, inputs):
-	activation = weights[-1]
+	activation = weights[-1]   # get bias
 	for i in range(len(weights)-1):
 		activation += weights[i] * inputs[i]
 	return activation
@@ -83,22 +83,19 @@ def train_run(network, input_row, expected_row, l_rate, n_epoch):
         print('\tepoch %02d, error = %.3f' % (epoch, sum_error))
 
 def run_xor(l_rate, n_epoch):
-    xor = [ [0,0], [0,1], [1,0], [1,1] ]
+    xor_in = [ [0,0], [0,1], [1,0], [1,1] ]
     xor_out = [ [1,0], [0,1], [0,1], [1,0] ]
-    network = init_network(len(xor[0]))
+    aux_in = []
+    for i in range(len(xor_in)):
+        for j in range(len(xor_in[i])):
+            aux_in.append(xor_in[i][j])
+    aux_out = []
+    for i in range(len(xor_out)):
+        for j in range(len(xor_out[i])):
+            aux_out.append(xor_out[i][j])
+    network = init_network(len(aux_in))
     print('\n\tlearn XOR')
-    print('\tfor %d epochs, with %.1f learning rate\n' % (n_epoch, l_rate))
-    for epoch in range(n_epoch):
-        sum_error = 0
-        row_index = 0
-        for row in xor:
-            output = forward_propagate(network, row)
-            expected = xor_out[row_index]
-            sum_error += sum([(expected[i]-output[i])**2 for i in range(len(expected))])
-            backward_propagate_error(network, expected)
-            upd_weights(network, row, l_rate)
-            row_index += 1
-        print('\tepoch %02d, error = %.3f' % (epoch, sum_error))
+    train_run(network, aux_in, aux_out, l_rate, num_epochs)
 
 def run_identity(idN_size, idN_row, l_rate, num_epochs):
     if idN_row >= idN_size:
@@ -110,11 +107,11 @@ def run_identity(idN_size, idN_row, l_rate, num_epochs):
 
 seed(1)
 
-learning_rate = 0.5
+learning_rate = 0.7
 num_epochs = 20
 
 identity_size = 8
 identity_row = 2
 
-run_identity(identity_size, identity_row, learning_rate, num_epochs)
-# run_xor(learning_rate, num_epochs)
+# run_identity(identity_size, identity_row, learning_rate, num_epochs)
+run_xor(learning_rate, num_epochs)
