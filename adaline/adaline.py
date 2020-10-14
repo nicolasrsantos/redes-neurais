@@ -57,8 +57,8 @@ def main():
     X_train, y_train = read_files("train/")
     X_test, y_test = read_files("test/")
     
-    bias = -1
-    learning_rate = 0.5
+    bias = 1
+    learning_rate = 0.1
     weights = train(X_train, y_train, learning_rate, bias)
     test(X_test, y_test, weights, bias)
 
