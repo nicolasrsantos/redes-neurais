@@ -12,7 +12,7 @@ from sklearn.preprocessing import Normalizer, MinMaxScaler
 def read_data(task):
     X = []  # features
     y = []  # labels
-    
+
     if task == 'r':
         print("Lendo arquivo para regressão.")
         with open("default_features_1059_tracks.txt", 'r') as f:
@@ -52,7 +52,7 @@ def to_onehot(y, n):
     onehot = np.zeros([len(y), n])
     for i in range(len(y)):
         onehot[i, y[i] - 1] = 1.0
-    
+
     return onehot
 
 # Gera os pesos da rede.
@@ -92,33 +92,56 @@ def forward_propagate(X, network):
         y_pred.append(predicted)
         X = predicted
 
-    return y_pred    
+    return y_pred
 
 #def update_weight(l_rate, error, y):
 #    return l_rate * error * y
 
-def backward_propagate_error(X, y_pred, y_true, network, l_rate, momentum):
-    for i in reversed(range(len(network))):
+def backward_propagate_error(X, y_pred, y_true, network, l_rate, alphaM, previous_delta):
+
+    # print('\n\nnew backpropagate\n\n')
+    current_delta = []
+
+    for i in reversed(range(len(network))):         # for each layer (from last hidden to input layer)
+        #                                           # e.g.: if there are 3 layers, 'layer' will run as 1 an then 0
+
         y_bias = np.concatenate([y_pred[i], [+1]])
         delta = []
-        for j in range(len(network[i][0])):
+
+        # delta_previous = [0] * len(network[i][0])
+        # print('delta_previous:', delta_previous)
+
+        for j in range(len(network[i][0])):         # for each neuron on current layer
+
             if i != len(network) - 1:
-                error = np.sum(network[i + 1][j] * old_delta)
+                error = np.sum(network[i + 1][j] * delta_old)
             else:
                 error = y_true[j] - y_pred[len(network)][j]
-            
+
             derivative = transfer_derivative(y_pred[i + 1][j])
             delta.append(error * derivative)
 
-            #if i == len(network) - 1:        
-            for k in range(network[i].shape[0]):
-                network[i][k, j] += l_rate * delta[j] * y_bias[k]# + momentum * delta[j]
-            #else:
-            #    for k in range(network[i].shape[0]):
-            #        network[i][k, j] += l_rate * delta[j] * y_bias[k]
-        old_delta = delta
-        
-    return network
+            # print('[i][j]: [%d][%d]' %(i, j))
+
+            # print('len(delta):', len(delta))
+            # print('delta:', delta)
+
+            for k in range(network[i].shape[0]):    # for each weight on current neuron
+                network[i][k, j] += l_rate * delta[j] * y_bias[k] + alphaM * previous_delta[i][j]
+
+        delta_old = delta
+        # print('delta_old', delta_old)
+        current_delta.append(delta)
+        # print('current_delta', current_delta)
+
+    # print('current_delta', current_delta)
+    # print('previous_delta', previous_delta)
+
+    curr_delta = []
+    for i in reversed(range(len(current_delta))):
+        curr_delta.append( current_delta[i] )
+
+    return network, curr_delta
 
 def individual_mse(y_true, y_pred):
     return 1/2 * np.sum([(y_true[i] - y_pred[i]) ** 2 for i in range(len(y_pred))])
@@ -126,8 +149,8 @@ def individual_mse(y_true, y_pred):
 def mse(X, y, y_pred):
     error = []
     for i in range(len(X)):
-        error.append(individual_mse(y[i], y_pred[i]))    
-    
+        error.append(individual_mse(y[i], y_pred[i]))
+
     #error = np.array(error)
     return np.mean(error)
 
@@ -136,17 +159,24 @@ def predict(X, y, network):
     for i in range(len(X)):
         predicted = forward_propagate(X[i], network)
         y_pred.append(predicted[len(network)])
-        
+
     return y_pred
 
 # Treinamento da rede.
-def fit(X, y, network, l_rate, epochs, momentum, epsilon):
+def fit(X, y, network, l_rate, epochs, alphaM, epsilon):
+
+    deltaM = [[ 0 for i in range(len(network[j][0])) ] for j in range(len(network)) ]
+    # print('len(deltaM)', len(deltaM))
+    # print('len(deltaM[0])', len(deltaM[0]))
+    # print('len(deltaM[1])', len(deltaM[1]))
+    # print('deltaM\n', deltaM)
+
     for i in range(epochs):
         for j in range(len(X)):
             new_input = X[j]
             y_pred = forward_propagate(new_input, network)
-            network = backward_propagate_error(X[j], y_pred, y[j], network, l_rate, momentum)
-        
+            network, deltaM = backward_propagate_error(X[j], y_pred, y[j], network, l_rate, alphaM, deltaM)
+
         predicted = predict(X, y, network)
         error = mse(X, y, predicted)
 
@@ -159,14 +189,20 @@ def fit(X, y, network, l_rate, epochs, momentum, epsilon):
     return network
 
 # Avalia a rede de acordo com a tarefa.
-def exec_algorithm(task, X, y, hidden, neurons_hidden, l_rate, epochs, momentum, epsilon):
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
-    network = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))        
-    network = fit(X_train, y_train, network, l_rate, epochs, momentum, epsilon)
-    
+def exec_algorithm(task, X, y, hidden, neurons_hidden, l_rate, epochs, alphaM, epsilon):
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, shuffle=True)
+    network = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))
+    # print('len(network)      :', len(network))
+    # print('len(network[0])   :', len(network[0]))
+    # print('len(network[0][0]):', len(network[0][0]))
+    # print('len(network[1])   :', len(network[1]))
+    # print('len(network[1][0]):', len(network[1][0]))
+    network = fit(X_train, y_train, network, l_rate, epochs, alphaM, epsilon)
+
     if task == 'c':
         predictions = predict(X_test, y_test, network)
-        score = accuracy_score(y_test, predictions)   
+        score = accuracy_score(y_test, predictions)
         print("Accuracy: %0.2f " % score)
     elif task == 'r':
         print("todo")
@@ -178,28 +214,28 @@ def main():
     task = 'c' # Usar 'r' para regressão ou 'c' para classificação.
     X, y = read_data(task)
     y = to_onehot(y, 3)
-    
+
     # Normalização das features.
     transformer = Normalizer().fit(X)
     normalized_X = transformer.transform(X)
-    
+
     #epsilon = 0.001
     #hidden = 1
     #neurons_hidden = 20
     #l_rate = 0.5
     #epochs = 1000
-    #momentum = 0.5
-    
+    #alphaM = 0.5
+
     # Hiperparâmetros.
     epsilon = 0.1
     hidden = 1
     neurons_hidden = 13
     l_rate = 0.2
     epochs = 10000
-    momentum = 0.5
+    alphaM = 0.5
 
     # Avaliação da rede de acordo com a tarefa.
-    exec_algorithm(task, normalized_X, y, hidden, neurons_hidden, l_rate, epochs, momentum, epsilon)
-    
+    exec_algorithm(task, normalized_X, y, hidden, neurons_hidden, l_rate, epochs, alphaM, epsilon)
+
 if __name__ == '__main__':
     main()
