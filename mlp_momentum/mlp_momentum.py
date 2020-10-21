@@ -161,7 +161,7 @@ def fit(X, y, network, l_rate, epochs, alpha, epsilon, previous_delta):
             print("error na saida %d %d" % (i, error))
             break
     
-    print("Train accuracy: %0.2f " % np.mean(scores))
+    print("l_rate %.1f\talpha %.1f\nTrain accuracy: %.2f " % (l_rate, alpha, scores.mean()))            
 
     return network
 
