@@ -196,7 +196,7 @@ def main():
     
     # Hiperparâmetros.
     epsilon = 0.05
-    hidden = 2
+    hidden = 1
     neurons_hidden = 20
     epochs = 10000
     alpha = 0.5
