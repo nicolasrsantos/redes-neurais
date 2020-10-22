@@ -40,13 +40,8 @@ def accuracy_score(y_true, y_pred):
 def sigmoid(activation):
 	return 1.0 / (1.0 + np.exp(-activation))
 
-# Converte y para vetor one-hot.
-def to_onehot(y, n):
-    onehot = np.zeros([len(y), n])
-    for i in range(len(y)):
-        onehot[i, y[i] - 1] = 1.0
-
-    return onehot
+def tanh(activation):
+    return np.tanh(activation)
 
 # Gera os pesos da rede.
 def get_weights(layers):
@@ -67,8 +62,12 @@ def initialize_network(hidden, neurons_hidden, n_classes, n_features):
         sys.exit("Número de camadas incorreto (valores possíveis = 1 ou 2).")
 
 # Calcula a derivada da saída de um neuron.
-def transfer_derivative(output):
+def transfer_derivative_sigmoid(output):
 	return output * (1.0 - output)
+
+# Calcula a derivada da saída de um neuron.
+def transfer_derivative_tanh(output):
+	return ( 1-( ( np.tanh(output) )**2) )
 
 # Etapa de forward do backpropagation.
 def forward_propagate(X, network):
@@ -97,7 +96,7 @@ def backward_propagate_error(X, y_pred, y_true, network, l_rate):
             else:
                 error = y_true[j] - y_pred[len(network)][j]
 
-            derivative = transfer_derivative(y_pred[i + 1][j])
+            derivative = transfer_derivative_sigmoid(y_pred[i + 1][j])
             delta.append(error * derivative)
 
             for k in range(network[i].shape[0]):
@@ -151,56 +150,37 @@ def fit(X, y, network, l_rate, epochs, epsilon):
         if error <= epsilon:
             # print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, scores.mean()))
             print("\nl_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
-            print("error na saida %d %.2f" % (i, error))
+            print("error na saida %d: %.2f" % (i, error))
             interrupted = 1
             break
 
     if(interrupted == 0):
         print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
 
-    # print('\nlen(network)', len(network))
-    # print('len(network[0])', len(network[0]))
-    # print('len(network[1])', len(network[1]))
-    # print()
-
-    return network
+    return network, predicted
 
 # Avalia a rede de acordo com a tarefa.
 def exec_algorithm(X, y, hidden, neurons_hidden, l_rate, epochs, epsilon):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, shuffle = True)
     start = time.time()
     network = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))
-    network = fit(X_train, y_train, network, l_rate, epochs, epsilon)
+    network, predicted = fit(X_train, y_train, network, l_rate, epochs, epsilon)
     end = time.time()
-    print("Tempo de execução %f segundos" % (end - start))
+    print("Tempo de execução: %.2f segundos" % (end - start))
 
     predictions = predict(X_test, network)
 
-    # print('\npredictions', predictions)
-    # print('len(predictions)', len(predictions))
-    print('len(predictions[-2])', len(predictions[-2]))
-    print('len(predictions[-1])', len(predictions[-1]))
-    print()
-
     score = accuracy_score(y_test, predictions)
     print("Test accuracy: %0.2f " % score)
+    plt.plot(predicted)
+    plt.show()
 
 def main():
     # Leitura do arquivo de entrada e conversão para one-hot.
     X, y = read_data()
-    # y = to_onehot(y, 3)
-
-    # print('len(X)', len(X))
-    # print('len(X[0])', len(X[0]))
-    # print('len(y)', len(y))
-    # print('y:\n\n', y)
-
     # Normalização das features.
     transformer = Normalizer().fit(X)
     normalized_X = transformer.transform(X)
-
-    # print('X:\n\n', X)
-    # print('\n\nnormalized_X:\n\n', normalized_X)
 
     # Hiperparâmetros.
     epsilon = 0.05
