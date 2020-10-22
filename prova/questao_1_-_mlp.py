@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 def read_data():
     X = []  # features
     y = []  # labels
-    print("Lendo arquivo para classificação.")
+    print("\nLendo arquivo para classificação\n")
     with open("iris.data", 'r') as f:
         for line in f.readlines():
             row = line.strip('\n').split(',')
@@ -109,6 +109,7 @@ def backward_propagate_error(X, y_pred, y_true, network, l_rate):
     return network
 
 def individual_mse(y_true, y_pred):
+    # return 1/2 * np.sum([(y_true[i] - y_pred[i]) ** 2 for i in range(len(y_pred))])
     return 1/2 * np.sum([(y_true[i] - y_pred[i]) ** 2 for i in range(len(y_pred))])
 
 def mse(X, y, y_pred):
@@ -130,6 +131,7 @@ def predict(X, network):
 # Treinamento da rede.
 def fit(X, y, network, l_rate, epochs, epsilon):
     scores = list()
+    interrupted = 0
     for i in range(epochs):
         for j in range(len(X)):
             new_input = X[j]
@@ -137,6 +139,7 @@ def fit(X, y, network, l_rate, epochs, epsilon):
             network = backward_propagate_error(X[j], y_pred, y[j], network, l_rate)
 
         predicted = predict(X, network)
+        # error = mse(X, y, predicted)
         error = mse(X, y, predicted)
 
         scores.append(accuracy_score(y, predicted))
@@ -147,11 +150,18 @@ def fit(X, y, network, l_rate, epochs, epsilon):
 
         if error <= epsilon:
             # print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, scores.mean()))
-            print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
-            print("error na saida %d %d" % (i, error))
+            print("\nl_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
+            print("error na saida %d %.2f" % (i, error))
+            interrupted = 1
             break
 
-    print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
+    if(interrupted == 0):
+        print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
+
+    # print('\nlen(network)', len(network))
+    # print('len(network[0])', len(network[0]))
+    # print('len(network[1])', len(network[1]))
+    # print()
 
     return network
 
@@ -162,9 +172,16 @@ def exec_algorithm(X, y, hidden, neurons_hidden, l_rate, epochs, epsilon):
     network = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))
     network = fit(X_train, y_train, network, l_rate, epochs, epsilon)
     end = time.time()
-    print("Tempo de execução %f segundos." % (end - start))
+    print("Tempo de execução %f segundos" % (end - start))
 
     predictions = predict(X_test, network)
+
+    # print('\npredictions', predictions)
+    # print('len(predictions)', len(predictions))
+    print('len(predictions[-2])', len(predictions[-2]))
+    print('len(predictions[-1])', len(predictions[-1]))
+    print()
+
     score = accuracy_score(y_test, predictions)
     print("Test accuracy: %0.2f " % score)
 
