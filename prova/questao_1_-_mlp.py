@@ -9,6 +9,7 @@ import numpy as np
 import time
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import Normalizer, MinMaxScaler
+import matplotlib.pyplot as plt
 
 def read_data():
     X = []  # features
@@ -139,16 +140,18 @@ def fit(X, y, network, l_rate, epochs, epsilon):
         error = mse(X, y, predicted)
 
         scores.append(accuracy_score(y, predicted))
+        # scores = np.array(scores, dtype = np.float32)
 
         if not i % 10:
             print( 'Epoch: %d, mse: %f' %( i, error ) )
 
         if error <= epsilon:
-            print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, scores.mean()))
+            # print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, scores.mean()))
+            print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
             print("error na saida %d %d" % (i, error))
             break
 
-    print("l_rate %.1f\talpha %.1f\nTrain accuracy: %.2f " % (l_rate, alpha, scores.mean()))
+    print("l_rate %.1f\nTrain accuracy: %.2f " % (l_rate, np.mean(scores)))
 
     return network
 
@@ -161,14 +164,9 @@ def exec_algorithm(X, y, hidden, neurons_hidden, l_rate, epochs, epsilon):
     end = time.time()
     print("Tempo de execução %f segundos." % (end - start))
 
-    if task == 'c':
-        predictions = predict(X_test, network)
-        score = accuracy_score(y_test, predictions)
-        print("Test accuracy: %0.2f " % score)
-    elif task == 'r':
-        print("todo")
-    else:
-        sys.exit("Tarefa inválida.\nPor favor, informe a tarefa corretamente (r, para regressão ou c, para classificação).")
+    predictions = predict(X_test, network)
+    score = accuracy_score(y_test, predictions)
+    print("Test accuracy: %0.2f " % score)
 
 def main():
     # Leitura do arquivo de entrada e conversão para one-hot.
