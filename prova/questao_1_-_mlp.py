@@ -70,7 +70,7 @@ def transfer_derivative_tanh(output):
 	return ( 1-( ( np.tanh(output) )**2) )
 
 # Etapa de forward do backpropagation.
-def forward_propagate(X, network):
+def forward_propagate(X, network, activ_f):
     y_pred = []
     y_pred.append(X)
 
@@ -80,13 +80,16 @@ def forward_propagate(X, network):
         # X = np.append(X, [+1])
         X = np.concatenate([X, [+1]])
         #print(X.shape, network[i].shape)
-        predicted = sigmoid(np.dot(X, network[i]))
+        if activ_f == 'sigmoid':
+            predicted = sigmoid(np.dot(X, network[i]))
+        elif activ_f == 'tanh':
+            predicted = tanh(np.dot(X, network[i]))
         y_pred.append(predicted)
         X = predicted
 
     return y_pred
 
-def backward_propagate_error(X, y_pred, y_true, network, l_rate):
+def backward_propagate_error(X, y_pred, y_true, network, l_rate, activ_f):
     for i in reversed(range(len(network))):
         delta = []
         y_bias = np.concatenate([y_pred[i], [+1]])
@@ -96,7 +99,10 @@ def backward_propagate_error(X, y_pred, y_true, network, l_rate):
             else:
                 error = y_true[j] - y_pred[len(network)][j]
 
-            derivative = transfer_derivative_sigmoid(y_pred[i + 1][j])
+            if activ_f == 'sigmoid':
+                derivative = transfer_derivative_sigmoid(y_pred[i + 1][j])
+            elif activ_f == 'tanh':
+                derivative = transfer_derivative_tanh(y_pred[i + 1][j])
             delta.append(error * derivative)
 
             for k in range(network[i].shape[0]):
@@ -119,25 +125,25 @@ def mse(X, y, y_pred):
     #error = np.array(error)
     return np.mean(error)
 
-def predict(X, network):
+def predict(X, network, activ_f):
     y_pred = []
     for i in range(len(X)):
-        predicted = forward_propagate(X[i], network)
+        predicted = forward_propagate(X[i], network, activ_f)
         y_pred.append(predicted[len(network)])
 
     return y_pred
 
 # Treinamento da rede.
-def fit(X, y, network, l_rate, epochs, epsilon):
+def fit(X, y, network, l_rate, epochs, epsilon, activ_f):
     scores = list()
     interrupted = 0
     for i in range(epochs):
         for j in range(len(X)):
             new_input = X[j]
-            y_pred = forward_propagate(new_input, network)
-            network = backward_propagate_error(X[j], y_pred, y[j], network, l_rate)
+            y_pred = forward_propagate(new_input, network, activ_f)
+            network = backward_propagate_error(X[j], y_pred, y[j], network, l_rate, activ_f)
 
-        predicted = predict(X, network)
+        predicted = predict(X, network, activ_f)
         # error = mse(X, y, predicted)
         error = mse(X, y, predicted)
 
@@ -160,15 +166,15 @@ def fit(X, y, network, l_rate, epochs, epsilon):
     return network, predicted
 
 # Avalia a rede de acordo com a tarefa.
-def exec_algorithm(X, y, hidden, neurons_hidden, l_rate, epochs, epsilon):
+def exec_algorithm(X, y, hidden, neurons_hidden, l_rate, epochs, epsilon, activ_f):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, shuffle = True)
     start = time.time()
     network = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))
-    network, predicted = fit(X_train, y_train, network, l_rate, epochs, epsilon)
+    network, predicted = fit(X_train, y_train, network, l_rate, epochs, epsilon, activ_f)
     end = time.time()
     print("Tempo de execução: %.2f segundos" % (end - start))
 
-    predictions = predict(X_test, network)
+    predictions = predict(X_test, network, activ_f)
 
     score = accuracy_score(y_test, predictions)
     print("Test accuracy: %0.2f " % score)
@@ -189,8 +195,12 @@ def main():
     epochs = 10000
     l_rate = 0.5
 
-    # Avaliação da rede de acordo com a tarefa.
-    exec_algorithm(normalized_X, y, hidden, neurons_hidden, l_rate, epochs, epsilon)
+    print('\nrunning for sigmoid:\n')
+    activ_f = 'sigmoid'
+    exec_algorithm(normalized_X, y, hidden, neurons_hidden, l_rate, epochs, epsilon, activ_f)
+    print('\nrunning for tanH:\n')
+    activ_f = 'tanh'
+    exec_algorithm(normalized_X, y, hidden, neurons_hidden, l_rate, epochs, epsilon, activ_f)
 
 if __name__ == '__main__':
     main()
