@@ -67,7 +67,7 @@ def transfer_derivative_sigmoid(output):
 
 # Calcula a derivada da saída de um neuron.
 def transfer_derivative_tanh(output):
-	return ( 1-( ( np.tanh(output) )**2) )
+	return ( 1.0 - ( np.tanh(output) ** 2 ) )
 
 # Etapa de forward do backpropagation.
 def forward_propagate(X, network, activ_f):
