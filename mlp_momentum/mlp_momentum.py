@@ -6,10 +6,12 @@
                 Tales Somensi
 '''
 import numpy as np
+import random
 import time
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import Normalizer, MinMaxScaler
 
+# Função para leitura dos dados.
 def read_data(task):
     X = []  # features
     y = []  # labels
@@ -98,6 +100,7 @@ def forward_propagate(X, network):
 
     return y_pred    
 
+# Backpropaga o erro, atualizando os pesos e salvando os deltas da iteração anterior.
 def backward_propagate_error(X, y_pred, y_true, network, l_rate, alpha, previous_delta):
     for i in reversed(range(len(network))):
         delta = []
@@ -115,14 +118,15 @@ def backward_propagate_error(X, y_pred, y_true, network, l_rate, alpha, previous
                 delta_w = l_rate * delta[j] * y_bias[k] + alpha * previous_delta[i][k, j]
                 network[i][k, j] += delta_w
                 previous_delta[i][k, j] = delta_w
-
         old_delta = delta
         
     return network, previous_delta
 
+# Calcula o erro quadrático médio individual.
 def individual_mse(y_true, y_pred):
-    return 1/2 * np.sum([(y_true[i] - y_pred[i]) ** 2 for i in range(len(y_pred))])
+    return np.sum([(y_true[i] - y_pred[i]) ** 2 for i in range(len(y_pred))]) / 2
 
+# Calcula o erro quadrático médio total.
 def mse(X, y, y_pred):
     error = []
     for i in range(len(X)):
@@ -131,17 +135,26 @@ def mse(X, y, y_pred):
     #error = np.array(error)
     return np.mean(error)
 
+# Prediz uma classe para cada elemento de X.
 def predict(X, network):
+    task = 'r'
     y_pred = []
     for i in range(len(X)):
         predicted = forward_propagate(X[i], network)
         y_pred.append(predicted[len(network)])
-        
+
+    # Se for regressão, o resultado da camada de saída é normalizado para [0,1]
+    if task == 'r':
+        minmaxscaler = MinMaxScaler()
+        y_pred = minmaxscaler.fit_transform(y_pred)
+
     return y_pred
 
 # Treinamento da rede.
-def fit(X, y, network, l_rate, epochs, alpha, epsilon, previous_delta):
-    scores = list()
+def fit(task, X, y, network, l_rate, epochs, alpha, epsilon, previous_delta):
+    if task == 'c':
+        scores = list()
+
     for i in range(epochs):
         for j in range(len(X)):
             new_input = X[j]
@@ -150,57 +163,75 @@ def fit(X, y, network, l_rate, epochs, alpha, epsilon, previous_delta):
 
         predicted = predict(X, network)
         error = mse(X, y, predicted)
-
-        scores.append(accuracy_score(y, predicted))
+        
+        if task == 'c':
+            scores.append(accuracy_score(y, predicted))
         
         if not i % 100:
-            print( 'Epoch: %d, mse: %f' %( i, error ) )
+            print("Epoch: %d\tmse: %f" %(i, error))
 
         if error <= epsilon:
-            print("l_rate %.1f\talpha %.1f\nTrain accuracy: %.2f " % (l_rate, alpha, scores.mean()))            
-            print("error na saida %d %d" % (i, error))
             break
-    
-    print("l_rate %.1f\talpha %.1f\nTrain accuracy: %.2f " % (l_rate, alpha, scores.mean()))            
+
+    print("alpha %.1f\teta %.1f\nErro no treino %d: %f" % (alpha, l_rate, i, error))
+    if task == 'c':
+        print("Train accuracy: %.2f" % np.mean(scores))            
 
     return network
 
 # Avalia a rede de acordo com a tarefa.
 def exec_algorithm(task, X, y, hidden, neurons_hidden, l_rate, epochs, alpha, epsilon):
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33, shuffle = True)
     start = time.time()
-    network, previous_delta = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))        
-    network = fit(X_train, y_train, network, l_rate, epochs, alpha, epsilon, previous_delta)
-    end = time.time()
-    print("Tempo de execução %f segundos." % (end - start))
 
+    # Divide 2/3 do dataset para treino e 1/3 para teste.
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.4, shuffle = True)
+
+    # Gera pesos e lista de matriz que armazenará o delta da iteração anterior.
+    network, previous_delta = initialize_network(hidden, neurons_hidden, len(y_train[0]), len(X_train[0]))        
+    
+    # Treina a rede.
+    network = fit(task, X_train, y_train, network, l_rate, epochs, alpha, epsilon, previous_delta)
+    end = time.time()
+    
+    # Gera predições e printa a acurácia (classificação) ou o erro (regressão).
+    predicted = predict(X_test, network)
     if task == 'c':
-        predictions = predict(X_test, network)
-        score = accuracy_score(y_test, predictions)   
+        score = accuracy_score(y_test, predicted)   
         print("Test accuracy: %0.2f " % score)
     elif task == 'r':
-        print("todo")
+        error = mse(X_test, y_test, predicted)
+        print("Erro no teste: %0.2f" % error)
     else:
         sys.exit("Tarefa inválida.\nPor favor, informe a tarefa corretamente (r, para regressão ou c, para classificação).")
 
+    print("Tempo de execução %.2f segundos." % (end - start))
+
 def main():
     # Leitura do arquivo de entrada e conversão para one-hot.
-    task = 'c' # Usar 'r' para regressão ou 'c' para classificação.
+    task = 'r' # Usar 'r' para regressão ou 'c' para classificação.
     X, y = read_data(task)
+    
+    # Se a tarefa for classificação, gera o onehot das classes
+    # Se a tarefa for regressão, normaliza as coordenadas lat e long para [0,1]
     if task == 'c':
         y = to_onehot(y, 3)
+    elif task == 'r':
+        minmaxscaler = MinMaxScaler()
+        y = minmaxscaler.fit_transform(y)
+    else:
+        sys.exit("Tarefa inválida.\nPor favor, informe a tarefa corretamente (r, para regressão ou c, para classificação).")
     
     # Normalização das features.
-    transformer = Normalizer().fit(X)
-    normalized_X = transformer.transform(X)
+    transformer_X = Normalizer().fit(X)
+    normalized_X = transformer_X.transform(X)
     
     # Hiperparâmetros.
-    epsilon = 0.05
-    hidden = 1
-    neurons_hidden = 20
-    epochs = 10000
-    alpha = 0.5
-    l_rate = 0.5
+    epsilon = 0.01
+    hidden = 2
+    neurons_hidden = 9
+    epochs = 5000
+    alpha = 0.9
+    l_rate = 0.1
     
     # Avaliação da rede de acordo com a tarefa.
     exec_algorithm(task, normalized_X, y, hidden, neurons_hidden, l_rate, epochs, alpha, epsilon)
