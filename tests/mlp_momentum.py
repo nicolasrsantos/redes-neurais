@@ -219,12 +219,10 @@ def main():
     transformer = Normalizer().fit(X)
     normalized_X = transformer.transform(X)
 
-    #epsilon = 0.001
-    #hidden = 1
-    #neurons_hidden = 20
-    #l_rate = 0.5
-    #epochs = 1000
-    #alphaM = 0.5
+    # print('X:\n\n', X)
+    # print('\n\nNormalized X:\n\n', normalized_X)
+    #
+    # sys.exit("\nTest done")
 
     # Hiperparâmetros.
     epsilon = 0.1
